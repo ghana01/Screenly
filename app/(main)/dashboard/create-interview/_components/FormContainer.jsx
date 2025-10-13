@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, CheckCircle, AlertCircle } from 'lucide-react'
 
 
-const FormContainer = ({formData, onHanleInputChange, setFormData}) => {
+const FormContainer = ({formData, onHanleInputChange, setFormData,GoToNext}) => {
  
   
   // Local form state (synchronized with context)
@@ -107,12 +107,14 @@ const FormContainer = ({formData, onHanleInputChange, setFormData}) => {
       
 
       {/* Generate Button */}
-      <div className='mt-5 flex justify-end'>
-        <Button >
+      <div className='mt-5 flex justify-end '
+      onClick={()=>GoToNext() }
+      >
+        <Button  className='cursor-pointer'>
           
           
         
-         Generate Questions <ArrowRight className='ml-2' />
+         Generate Questions <ArrowRight className='ml-2 ' />
          
         </Button>
       </div>

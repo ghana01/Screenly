@@ -63,3 +63,26 @@ export const InterviewType =[
     }
 
 ]
+
+export const QUESTIONS_PROMPT =`You are an expert technical interviewer.
+Based on the following inputs, generate a well-structured list of high-quality interview questions:
+Job Title: {{jobPosition}}
+Job Description:{{jobDescription}}
+Interview Duration: {{ interviewDuration}}
+Interview Type: {{interviewTypes}}
+
+📋 Your task:
+Analyze the job description to identify key responsibilities, required skills, and expected experience.
+Generate a list of interview questions dependent on interview duration.
+Adjust the number and depth of questions to match the interview duration.
+Ensure the questions match the tone and structure of a real-life {{interviewTypes}} interview.
+
+🧩 Format your response in JSON format with array list of questions.
+format: interviewQuestions=[
+{
+  question:"",
+  InterviewType:'Technical/Behavioral/Experience/Problem Solving/Leadership'
+},{
+  ...
+}]
+🎯 The goal is to create a structured, relevant, and time-optimized interview plan for a {{jobPosition}} role.`
