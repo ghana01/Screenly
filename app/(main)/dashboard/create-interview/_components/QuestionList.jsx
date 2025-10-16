@@ -2,144 +2,126 @@
 import axios from 'axios'
 import { toast } from 'sonner'
 import { Loader2Icon } from 'lucide-react'
-import React, { use, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/services/supabaseClient'
 import { useUser } from '@/app/provider'
 import QuestionListContainer from './QuestionListContainer'
 import { v4 as uuid } from 'uuid'
+
 const QuestionList = ({ formData, onCreateLink}) => {
     const [loading, setLoading] = React.useState(false)
     const [questionList, setQuestionList] = React.useState([])
     const [error, setError] = React.useState(null)
-   const {user} =useUser()
-   const [saveLoading,setSaveLoading] = React.useState(false)
+    const {user} = useUser()
+    const [saveLoading, setSaveLoading] = React.useState(false)
+
     useEffect(() => {
         if (formData && Object.keys(formData).length > 0) {
             GenerateQuestionList()
         }
     }, [formData])
 
-    const testAPI = async () => {
+    const GenerateQuestionList = async () => {
+        setLoading(true)
+        setError(null)
+        setQuestionList([])
+        
         try {
-            console.log("Testing API connection...")
-            const result = await axios.post('/api/test', formData)
-            console.log('Test API Response:', result.data)
-            toast.success('API connection successful!')
-        } catch (error) {
-            console.error('Test API Error:', error)
-            toast.error('API connection failed')
-        }
-    }
-
-   const GenerateQuestionList = async () => {
-    setLoading(true)
-    setError(null) // Clear any previous errors
-    setQuestionList([]) // Clear previous questions
-    
-    console.log('Sending form data:', formData)
-    
-    try {
-        const result = await axios.post('/api/ai-model', formData)
-        
-        console.log('API Response:', result.data)
-        
-        if (result.data.success) {
-            // Try to parse the content as JSON (if it's a JSON string)
-            let questions;
-            try {
-                // Remove markdown code blocks if present
-                let cleanContent = result.data.content;
-                if (cleanContent.startsWith('```json')) {
-                    cleanContent = cleanContent.replace(/```json\n/, '').replace(/\n```$/, '');
-                }
-                
-                const parsedData = JSON.parse(cleanContent)
-                console.log('Parsed data:', parsedData)
-                
-                // Extract the array from the parsed JSON
-                questions = parsedData.interviewQuestions || []
-                console.log('Questions array:', questions)
-                
-                // Only set questions if we have valid data
-                if (questions.length > 0) {
-                    setQuestionList(questions)
-                    setError(null) // Clear any errors on success
-                    toast.success('Questions generated successfully!')
-                } else {
-                    throw new Error('No questions generated')
-                }
-                
-            } catch (parseError) {
-                console.log('Parse error:', parseError)
-                throw new Error('Failed to parse response')
-            }
-        } else {
-            throw new Error(result.data.error || 'Failed to generate questions')
-        }
-        
-    } catch (error) {
-        console.log('Error generating questions:', error)
-        console.log('Error response:', error.response?.data)
-        
-        // Only set error if we don't have questions already
-        if (questionList.length === 0) {
-            const errorMessage = error.response?.data?.error || error.message || 'Server error'
-            const errorDetails = error.response?.data?.details || ''
+            const result = await axios.post('/api/ai-model', formData)
             
-            setError(`${errorMessage}${errorDetails ? ': ' + errorDetails : ''}`)
-            toast.error(`Error: ${errorMessage}`)
+            if (result.data.success) {
+                let questions;
+                try {
+                    // Remove markdown code blocks if present
+                    let cleanContent = result.data.content;
+                    if (cleanContent.startsWith('```json')) {
+                        cleanContent = cleanContent.replace(/```json\n/, '').replace(/\n```$/, '');
+                    }
+                    
+                    const parsedData = JSON.parse(cleanContent)
+                    questions = parsedData.interviewQuestions || []
+                    
+                    if (questions.length > 0) {
+                        setQuestionList(questions)
+                        setError(null)
+                        toast.success('Questions generated successfully!')
+                    } else {
+                        throw new Error('No questions generated')
+                    }
+                    
+                } catch (parseError) {
+                    throw new Error('Failed to parse response')
+                }
+            } else {
+                throw new Error(result.data.error || 'Failed to generate questions')
+            }
+            
+        } catch (error) {
+            if (questionList.length === 0) {
+                const errorMessage = error.response?.data?.error || error.message || 'Server error'
+                setError(errorMessage)
+                toast.error(`Error: ${errorMessage}`)
+            }
+        } finally {
+            setLoading(false)
         }
-    } finally {
-        setLoading(false)
     }
-}
 
-const onFinish = async() => {
-
-    try {
-        const interview_id = uuid();
-        setSaveLoading(true)
-        if(!questionList || questionList.length ===0){
-            console.log('No questions to save')
-            return;
-        }
-        
-        const { data, error } = await supabase
-            .from('interview')
-            .insert([
-                { 
-                    ...formData,
-                    questionList: questionList,
-                    userEmail: user?.email,
-                    interview_id: interview_id
-                },
-            ])
-            .select()
+    const onFinish = async() => {
+        try {
+            const interview_id = uuid();
+            setSaveLoading(true)
+            
+            if(!questionList || questionList.length === 0){
+                setSaveLoading(false)
+                toast.error('No questions available to save')
+                return;
+            }
+            
+            if(!user?.email) {
+                setSaveLoading(false)
+                toast.error('Please sign in to save interview')
+                return;
+            }
+            
+            const dataToInsert = {
+                jobPosition: formData.jobPosition,
+                jobDescription: formData.jobDescription,
+                interviewDuration: formData.interviewDuration,
+                interviewTypes: formData.interviewTypes,
+                questionList: questionList,
+                userEmail: user.email,
+                interview_id: interview_id
+            }
+            
+            const { data, error } = await supabase
+                .from('interview')
+                .insert([dataToInsert])
+                .select()
+            
+            if (error) {
+                console.error('Database error:', error);
+                toast.error(`Database error: ${error.message}`);
+                setSaveLoading(false)
+            } else if (data && data.length > 0) {
+                toast.success('Interview saved successfully!');
+                setSaveLoading(false)
+                onCreateLink(interview_id)
+            } else {
+                toast.error('Unexpected database response')
+                setSaveLoading(false)
+            }
+            
+        } catch (err) {
+            console.error('Error:', err);
+            toast.error(`Unexpected error: ${err.message}`);
             setSaveLoading(false)
-
-            onCreateLink(interview_id)
-        
-        if (error) {
-            console.error('Database error:', error);
-            toast.error('Failed to save interview');
-        } else {
-            console.log('Inserted data:', data);
-            toast.success('Interview saved successfully!');
         }
-        
-    } catch (err) {
-        console.error('Error saving interview:', err);
-        toast.error('Failed to save interview');
     }
-}
-
 
     return (
         <div className="p-4">
-            {/* Debug section */}
-           
-
             {loading && (
                 <div className='p-5 bg-blue-100 rounded-xl border-primary flex gap-5 items-center'>
                     <Loader2Icon className="animate-spin mr-2 h-4 w-4" />
@@ -169,13 +151,16 @@ const onFinish = async() => {
                 <div>
                     <QuestionListContainer questionList={questionList} />
                 </div>
-                
             )}
+            
             <div className='mt-5 flex justify-end'>
-
-                <Button onClick={onFinish} disabled={questionList.length === 0 || saveLoading}
-                {...saveLoading && <Loader2Icon className="animate-spin mr-2 h-4 w-4" />}
-                >Create Interview Link  && Finish</Button>
+                <Button 
+                    onClick={onFinish} 
+                    disabled={questionList.length === 0 || saveLoading}
+                >
+                    {saveLoading && <Loader2Icon className="animate-spin mr-2 h-4 w-4" />}
+                    Create Interview Link && Finish
+                </Button>
             </div>
         </div>
     )

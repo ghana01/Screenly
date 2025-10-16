@@ -10,7 +10,7 @@ import {toast} from "sonner"
 import {InterviewLink} from './_components/InterviewLink'
 
 const CreateInterview = () => {
-    const [step, setStep] = useState(3);
+    const [step, setStep] = useState(1);
     const router = useRouter();
     const [formData, setFormData] = useState({
     jobPosition: '',
