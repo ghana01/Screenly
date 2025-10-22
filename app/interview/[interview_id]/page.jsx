@@ -17,6 +17,7 @@ const Interview = () => {
     console.log(interview_id)
     const [interviewData,setInterviewData] = React.useState({});
     const [userName,setUserName] = React.useState();
+    const [email,setEmail] = React.useState();
     const [loading,setLoading] = React.useState(false);
     const Router = useRouter();
     
@@ -59,6 +60,7 @@ const Interview = () => {
             .eq('interview_id', interview_id)
             console.log(interview[0])
             setInterviewInfo({
+                userEmail:email,
                 userName:userName,
                 interviewData:interview[0]
             })
@@ -81,6 +83,12 @@ const Interview = () => {
             <h2>ENTER YOUR FULL NAME</h2>
             <Input placeholder='Your Full Name' className='mt-3'
             onChange={(e)=>setUserName(e.target.value)}
+            />
+        </div>
+        <div className='w-full'>
+            <h2>ENTER Email</h2>
+            <Input placeholder='Your Email eg:youname@gmail.com' className='mt-3'
+            onChange={(e)=>setEmail(e.target.value)}
             />
         </div>
                     
