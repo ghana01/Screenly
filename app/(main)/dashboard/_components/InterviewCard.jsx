@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Copy, Send, Calendar, Clock, Briefcase } from 'lucide-react';
 import {toast} from "sonner"
-const InterviewCard = ({ interview }) => {
+const InterviewCard = ({ interview, viewDetail }) => {
     const url =process.env.NEXT_PUBLIC_HOSTED_URL +'/interview/'+interview?.interview_id
     const copyLink =() =>{
         

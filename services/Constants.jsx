@@ -24,7 +24,7 @@ export const SideBarOption = [
   },
   {
     name: "All Interview",
-    link: "/interview",
+    link: "/all-interview",
     icon: List,
   },
   {
