@@ -1,9 +1,10 @@
 import moment from 'moment/moment';
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Copy, Send, Calendar, Clock, Briefcase } from 'lucide-react';
+import { Copy, Send, Calendar, Clock, Briefcase, ArrowRight} from 'lucide-react';
 import {toast} from "sonner"
-const InterviewCard = ({ interview, viewDetail }) => {
+import Link from "next/link";
+const InterviewCard = ({ interview, viewDetail=false }) => {
     const url =process.env.NEXT_PUBLIC_HOSTED_URL +'/interview/'+interview?.interview_id
     const copyLink =() =>{
         
@@ -55,27 +56,32 @@ const InterviewCard = ({ interview, viewDetail }) => {
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 rounded-lg">
             <span className="text-sm font-medium text-purple-700">
-              {interview?.interviewTypes || 'Technical'}
+              {interview['interview-feedback']?.length} candidates
             </span>
           </div>
+         
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 w-full">   
-          <Button onClick={copyLink}
-            variant="outline" 
-            className="flex-1 group/btn hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
-          >
-            <Copy className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform" />
-            Copy Link
-          </Button>
-          <Button  onClick={onSend}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all duration-200"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            Send LINK     {/* i want to send th mail  interview link to the interview mail onClick={onSend} */}
-          </Button>
-        </div>
+        {!viewDetail ?<div className="flex gap-3 w-full">   
+            <Button onClick={copyLink}
+              variant="outline" 
+              className="flex-1 group/btn hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
+            >
+              <Copy className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform" />
+              Copy Link
+            </Button>
+            <Button  onClick={onSend}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all duration-200"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Send LINK     {/* i want to send th mail  interview link to the interview mail onClick={onSend} */}
+            </Button>
+        </div> : 
+        <Link href={'/schedule-interview/'+interview?.interview_id+'/details'}>
+              <Button className='mt-5 w-full' variant="outline">View Details <ArrowRight /></Button>
+        </Link>}
+        
       </div>
 
       {/* Bottom accent line */}
