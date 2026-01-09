@@ -222,10 +222,21 @@ Guidelines:
             });
             
             if (result?.data?.success) {
-                const feedback = result.data.content || result.data.feedback;
+                const feedbackString = result.data.content || result.data.feedback;
                 toast.success('Feedback generated successfully!', { id: loadingToast });
                 
                 console.log('💾 Saving feedback to database...');
+                
+                // Safely parse feedback JSON
+                let parsedFeedback;
+                try {
+                    parsedFeedback = typeof feedbackString === 'string' 
+                        ? JSON.parse(feedbackString) 
+                        : feedbackString;
+                } catch (parseError) {
+                    console.error('Failed to parse feedback:', parseError);
+                    parsedFeedback = { raw: feedbackString };
+                }
                 
                 // Save to database
                 const { data, error } = await supabase
@@ -235,7 +246,7 @@ Guidelines:
                             userName: interviewInfo?.userName,
                             email: interviewInfo?.userEmail,
                             interview_id: interview_id, 
-                            feedback: JSON.parse(feedback),
+                            feedback: parsedFeedback,
                             recommended: false
                         },
                     ])

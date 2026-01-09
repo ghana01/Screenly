@@ -1,10 +1,11 @@
 "use client"
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/services/supabaseClient'
 import { useUser } from '@/app/provider'
 import InterviewCard from '@/app/(main)/dashboard/_components/InterviewCard'
 import { Video } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 function ScheduleInterviewPage() {
   const { user } = useUser();
@@ -13,8 +14,10 @@ function ScheduleInterviewPage() {
   const [loading, setLoading] = React.useState(true);
 
   useEffect(() => {
-    if (user) {
+    if (user?.email) {
       GetInterviewList();
+    } else {
+      setLoading(false);
     }
   }, [user])
 
@@ -22,7 +25,6 @@ function ScheduleInterviewPage() {
     try {
       setLoading(true);
       
-      // ✅ Correct syntax for hyphenated table name with backticks or quotes
       const { data, error } = await supabase
         .from('interview')
         .select(`
@@ -44,17 +46,16 @@ function ScheduleInterviewPage() {
 
       if (error) {
         console.error('Error fetching interviews:', error);
+        toast.error('Failed to load interviews');
         setInterviewList([]);
         return;
       }
-
-      console.log('Fetched interviews with feedback:', data);
       
-      // ✅ Set data to state
       setInterviewList(data || []);
       
     } catch (err) {
       console.error('Unexpected error:', err);
+      toast.error('Something went wrong');
       setInterviewList([]);
     } finally {
       setLoading(false);

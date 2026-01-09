@@ -10,10 +10,13 @@ import { UserDetailContext } from '@/context/UserDetailContext'
  * - Watches for user authentication (Google sign-in)
  * - Automatically stores user data in Supabase database
  * - Provides user data to all child components via context
+ * - CHANGED: Added isLoading state for better auth state management
  */
 function Provider({ children }) {
     // State to store the current user's database record
     const [currentUser, setCurrentUser] = useState()
+    // CHANGED: Added loading state to track auth initialization
+    const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         /**
@@ -98,17 +101,25 @@ function Provider({ children }) {
          * Initialize: Check if user is already signed in when page loads
          */
         async function checkCurrentUser() {
-            const { data, error } = await supabase.auth.getUser()
-            
-            if (error) {
-                console.log('Error checking current user:', error.message)
-                return
-            }
+            try {
+                const { data, error } = await supabase.auth.getUser()
+                
+                if (error) {
+                    // CHANGED: Only log non-session errors (session missing is expected for logged out users)
+                    if (!error.message.includes('session')) {
+                        console.log('Error checking current user:', error.message)
+                    }
+                    setIsLoading(false)
+                    return
+                }
 
-            const authenticatedUser = data?.user
-            if (authenticatedUser) {
-                console.log('Found signed-in user on page load:', authenticatedUser.email)
-                await saveUserToDatabase(authenticatedUser)
+                const authenticatedUser = data?.user
+                if (authenticatedUser) {
+                    console.log('Found signed-in user on page load:', authenticatedUser.email)
+                    await saveUserToDatabase(authenticatedUser)
+                }
+            } finally {
+                setIsLoading(false)
             }
         }
 
@@ -133,6 +144,9 @@ function Provider({ children }) {
                     console.log('👋 User signed out')
                     setCurrentUser(null)
                 }
+                
+                // CHANGED: Set loading to false after any auth event
+                setIsLoading(false)
             }
         )
 
@@ -146,8 +160,9 @@ function Provider({ children }) {
         }
     }, [])
 
+    // CHANGED: Provide isLoading state along with user data
     return (
-        <UserDetailContext.Provider value={{ user: currentUser, setUser: setCurrentUser }}>
+        <UserDetailContext.Provider value={{ user: currentUser, setUser: setCurrentUser, isLoading }}>
             {children}
         </UserDetailContext.Provider>
     )
@@ -157,10 +172,10 @@ export default Provider
 
 /**
  * Custom hook to access user data from anywhere in the app
- * @returns {Object} { user, setUser }
+ * @returns {Object} { user, setUser, isLoading }
  * 
  * Usage example:
- * const { user, setUser } = useUser()
+ * const { user, setUser, isLoading } = useUser()
  * console.log(user.email)
  */
 export const useUser = () => {
@@ -169,6 +184,6 @@ export const useUser = () => {
     if (!userContext) {
         throw new Error('useUser must be used within a Provider component')
     }
-    
+      
     return userContext
 }

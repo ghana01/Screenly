@@ -1,120 +1,154 @@
 "use client"
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button' // Missing
-import { Clock, Loader2Icon, Video } from 'lucide-react' // Missing Clock and Video
-import Image from 'next/image' // Missing
-import { Info } from 'lucide-react'
-import React, { useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Clock, Loader2Icon, Video, Info } from 'lucide-react'
+import Image from 'next/image'
+import React, { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/services/supabaseClient'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 import { InterviewDataContext } from '@/context/InterviewDataContext'
 
 const Interview = () => {
-    const {interviewInfo, setInterviewInfo} = React.useContext(InterviewDataContext);
-    const {interview_id} =  useParams();
-    console.log(interview_id)
-    const [interviewData,setInterviewData] = React.useState({});
-    const [userName,setUserName] = React.useState();
-    const [email,setEmail] = React.useState();
-    const [loading,setLoading] = React.useState(false);
-    const Router = useRouter();
-    
+    const { interviewInfo, setInterviewInfo } = React.useContext(InterviewDataContext);
+    const { interview_id } = useParams();
+    const [interviewData, setInterviewData] = useState({});
+    const [userName, setUserName] = useState('');
+    const [email, setEmail] = useState('');
+    const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
-      useEffect(()=>{
-       interview_id && GetInterviewDetail();
-      },[interview_id])
-    const GetInterviewDetail = async () => {
-    try {
-        setLoading(true)
-        let { data: interview, error } = await supabase
-            .from('interview')
-            .select("jobPosition, jobDescription, interviewDuration, interviewTypes")
-            .eq('interview_id', interview_id)
-        
-        console.log('Database response:', interview) // Add this to debug
-        
-        if (interview && interview.length > 0) {
-            setInterviewData(interview[0])
-            console.log('Interview data set:', interview[0])
-        } else {
-            toast('Incorrect Interview link')
-            setInterviewData({}) // Keep it as empty object
+    useEffect(() => {
+        if (interview_id) {
+            GetInterviewDetail();
         }
-        
-        setLoading(false) // Always set loading to false
-        
-    } catch(e) {
-        console.error('Error:', e) // Add this to see actual error
-        setLoading(false)
-        toast('Incorrect Interview link')
-        setInterviewData({})
+    }, [interview_id])
+
+    const GetInterviewDetail = async () => {
+        try {
+            setLoading(true)
+            let { data: interview, error } = await supabase
+                .from('interview')
+                .select("jobPosition, jobDescription, interviewDuration, interviewTypes")
+                .eq('interview_id', interview_id)
+
+            console.log('Database response:', interview)
+
+            if (interview && interview.length > 0) {
+                setInterviewData(interview[0])
+                console.log('Interview data set:', interview[0])
+            } else {
+                toast.error('Incorrect Interview link')
+                setInterviewData({})
+            }
+        } catch (e) {
+            console.error('Error:', e)
+            toast.error('Incorrect Interview link')
+            setInterviewData({})
+        } finally {
+            setLoading(false)
+        }
     }
-}
-    const onJoinInterview = async()=>{
+
+    const onJoinInterview = async () => {
+        // CHANGED: Added validation for both fields
+        if (!userName?.trim() || !email?.trim()) {
+            toast.error('Please enter your name and email')
+            return
+        }
+
         setLoading(true)
-        let { data: interview, error } = await supabase
-            .from('interview')
-            .select('*')
-            .eq('interview_id', interview_id)
+        try {
+            let { data: interview, error } = await supabase
+                .from('interview')
+                .select('*')
+                .eq('interview_id', interview_id)
+
+            if (error || !interview?.[0]) {
+                toast.error('Interview not found')
+                setLoading(false)
+                return
+            }
+
             console.log(interview[0])
             setInterviewInfo({
-                userEmail:email,
-                userName:userName,
-                interviewData:interview[0]
+                userEmail: email,
+                userName: userName,
+                interviewData: interview[0]
             })
-            Router.push('/interview/'+interview_id+'/start')
+            router.push('/interview/' + interview_id + '/start')
+        } catch (e) {
+            console.error('Error joining interview:', e)
+            toast.error('Failed to join interview')
+        } finally {
             setLoading(false)
+        }
     }
-  return (
-    <div className='px-10 md:px-28 lg:px-48 xl:px-64 mt-16 mb-20'>
 
-        <div  className='flex flex-col items-center justify-center border rounded-xl bg-white p-7 lg:px-32 xl:px-54'>
-             <Image src='/logo.png' alt='logo' width={200} height={100} className='w-[140px] h-[140px]'/>
+    // CHANGED: Show loading state
+    if (loading && !interviewData?.jobPosition) {
+        return (
+            <div className='flex items-center justify-center min-h-screen'>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        )
+    }
 
-             <h2 className='mt-3'>AI-POWERED INTERVIEW PLATFORM</h2>
+    return (
+        <div className='px-10 md:px-28 lg:px-48 xl:px-64 mt-16 mb-20'>
+            <div className='flex flex-col items-center justify-center border rounded-xl bg-white p-7 lg:px-32 xl:px-54'>
+                <Image src='/logo.png' alt='logo' width={200} height={100} className='w-[140px]' />
+                <h2 className='mt-3'>AI-POWERED INTERVIEW PLATFORM</h2>
+                <Image src={"/interview.jpg"} alt='interview' width={500} height={400} className='w-[300px] my-6' />
+                <h2 className='font-bold text-xl'>{interviewData?.jobPosition}</h2>
+                <h2 className='flex gap-2 items-center text-gray-500 mt-3'>
+                    <Clock /> {interviewData?.interviewDuration} Minutes
+                </h2>
 
-        <Image  src={"/interview.jpg"} alt='interview' width={500} height={400} className='w-[300px] my-6'/>
-        <h2 className='font-bold text-xl '>{interviewData.jobPosition}</h2>
-        <h2 className='flex  gap-2 items-center text-gray-500 mt-3'><Clock/> {interviewData.interviewDuration} Minutes</h2>
+                <div className='w-full mt-5'>
+                    <h2 className='font-medium'>ENTER YOUR FULL NAME</h2>
+                    <Input 
+                        placeholder='Your Full Name' 
+                        className='mt-2'
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                    />
+                </div>
+                <div className='w-full mt-4'>
+                    <h2 className='font-medium'>ENTER EMAIL</h2>
+                    <Input 
+                        placeholder='Your Email eg: yourname@gmail.com' 
+                        className='mt-2'
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                    />
+                </div>
+            </div>
 
-        <div className='w-full'>
-            <h2>ENTER YOUR FULL NAME</h2>
-            <Input placeholder='Your Full Name' className='mt-3'
-            onChange={(e)=>setUserName(e.target.value)}
-            />
+            <div className='p-3 bg-blue-100 flex gap-4 rounded-2xl mt-5'>
+                <Info className='text-primary h-5 w-5 flex-shrink-0 mt-1' />
+                <div>
+                    <h2 className='font-bold'>Before you begin</h2>
+                    <ul className='list-disc px-5 mt-3 text-gray-500'>
+                        <li className='text-sm'>Ensure you are in a quiet environment</li>
+                        <li className='text-sm'>Test your microphone and camera</li>
+                        <li className='text-sm'>Have a stable internet connection</li>
+                        <li className='text-sm'>Be prepared to answer questions about your resume and experience</li>
+                    </ul>
+                </div>
+            </div>
+
+            <Button 
+                className="mt-5 w-full font-bold"
+                disabled={loading || !userName?.trim() || !email?.trim()}
+                onClick={onJoinInterview}
+            >
+                <Video className="mr-2" />
+                {loading && <Loader2Icon className="animate-spin mr-2" />}
+                Join Interview
+            </Button>
         </div>
-        <div className='w-full'>
-            <h2>ENTER Email</h2>
-            <Input placeholder='Your Email eg:youname@gmail.com' className='mt-3'
-            onChange={(e)=>setEmail(e.target.value)}
-            />
-        </div>
-                    
-        </div>
-        <div className='p-3 bg-blue-100 flex gap-4 rounded-2xl '>
-             <Info className='text-primary h-5 w-5'/>
-             <div>
-            <h2 className='font-bold'>Before you begin</h2>
-            <ul className='list-disc px-5 mt-3 text-gray-500'>
-                <li className='text-sm text-primary'>Ensure you are in a quiet environment</li>
-                <li className='text-sm text-primary'>Test your microphone and camera</li>
-                <li className='text-sm text-primary'>Have a stable internet connection</li>
-                <li className='text-sm text-primary'>Be prepared to answer questions about your resume and experience</li>
-            </ul>
-
-        </div>
-        </div>
-        <Button className="mt-5 w-full bg-primary text-white font-bold"
-        disabled={loading || !userName}
-        onClick={()=>onJoinInterview()}
-        > <Video/>{loading && <Loader2Icon  />}  Join Interview</Button>
-       
-        
-
-    </div>
-  )
+    )
 }
 
 export default Interview

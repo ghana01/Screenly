@@ -3,7 +3,22 @@ import OpenAI from "openai"
 
 export async function POST(req) { 
     try {
-        const {jobPosition, jobDescription, interviewDuration, interviewTypes} = await req.json()
+        let body;
+        try {
+            body = await req.json()
+        } catch (parseError) {
+            console.error('Failed to parse request body:', parseError)
+            return new Response(JSON.stringify({
+                error: 'Invalid JSON in request body'
+            }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            })
+        }
+
+        const {jobPosition, jobDescription, interviewDuration, interviewTypes} = body
+        
+        console.log('Received request:', { jobPosition, jobDescription, interviewDuration, interviewTypes })
         
         // Validate required fields
         if(!jobPosition || !jobDescription || !interviewDuration || !interviewTypes?.length) {
@@ -29,54 +44,70 @@ export async function POST(req) {
         if (!process.env.OPENROUTER_API_KEY) {
             console.error('OPENROUTER_API_KEY is not set')
             return new Response(JSON.stringify({
-                error: 'Server configuration error'
+                error: 'Server configuration error',
+                details: 'API key not configured'
             }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' }
             })
         }
 
+        console.log('API Key exists:', !!process.env.OPENROUTER_API_KEY)
+
         const openai = new OpenAI({
             baseURL: "https://openrouter.ai/api/v1",
             apiKey: process.env.OPENROUTER_API_KEY,
         })
 
-        const completion = await openai.chat.completions.create({
-            model: "meituan/longcat-flash-chat:free",
-            messages: [
-                { role: "user", content: FINAL_PROMPT }
-            ],
-        })
+        console.log('Calling OpenRouter API...')
+        
+        let completion;
+        try {
+            completion = await openai.chat.completions.create({
+                model: "google/gemini-2.0-flash-001",  // Using stable model
+                messages: [
+                    { role: "user", content: FINAL_PROMPT }
+                ],
+            })
+        } catch (apiError) {
+            console.error('OpenRouter API Error:', apiError.message)
+            console.error('Full API Error:', apiError)
+            return new Response(JSON.stringify({
+                error: 'AI API call failed',
+                details: apiError.message
+            }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            })
+        }
 
-        // Updated: Handle the response structure correctly
-        console.log('Full completion object:', completion)
+        console.log('Full completion object:', JSON.stringify(completion, null, 2))
         
         let messageContent;
         
-        // Check if it's the standard OpenAI format
         if (completion.choices && completion.choices[0] && completion.choices[0].message) {
             messageContent = completion.choices[0].message.content;
-            console.log('Using standard format - AI Response:', completion.choices[0].message)
-        }
-        // Check if the response is directly the message object (which seems to be your case)
-        else if (completion.content) {
-            messageContent = completion.content;
-            console.log('Using direct format - AI Response:', completion)
-        }
-        // Fallback: if the completion itself has the message properties
-        else if (completion.role && completion.content) {
-            messageContent = completion.content;
-            console.log('Using message format - AI Response:', completion)
-        }
-        else {
+        } else {
             console.error('Unexpected response format:', completion)
-            throw new Error('Unexpected API response format')
+            return new Response(JSON.stringify({
+                error: 'Unexpected API response format',
+                details: 'Could not extract message from response'
+            }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            })
         }
 
-        // Clean up the content (remove any trailing tokens)
-        const cleanContent = messageContent.replace(/｜begin▁of▁sentence｜>/g, '').trim()
+        // Clean up the content
+        let cleanContent = messageContent
+            .replace(/｜begin▁of▁sentence｜>/g, '')
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/i, '')
+            .replace(/\s*```$/i, '')
+            .trim()
         
-        // Return the content directly
+        console.log('Clean content:', cleanContent)
+        
         return new Response(JSON.stringify({
             success: true,
             content: cleanContent,
@@ -87,7 +118,8 @@ export async function POST(req) {
         })
         
     } catch(error) {
-        console.error('API Error:', error)
+        console.error('Unhandled API Error:', error.message)
+        console.error('Error stack:', error.stack)
         return new Response(JSON.stringify({
             error: 'Failed to generate questions',
             details: error.message

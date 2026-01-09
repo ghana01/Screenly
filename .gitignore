@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Deployment documentation (local guides, not needed in repo)
+START_HERE.md
+VERCEL_DEPLOYMENT.md
+VERCEL_ENV_QUICK_REF.md
+DEPLOYMENT_CHECKLIST.md
+CHANGES_SUMMARY.md
+ENV_VARIABLES_MAP.md
+ENHANCEMENT_SUMMARY.md
+
+VERCEL_DEPLOYMENT.md
