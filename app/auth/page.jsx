@@ -21,7 +21,7 @@ function Login() {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                // CHANGED: Set redirect URL to remove hash from callback
+                // Redirect to home page after auth, it will handle the callback
                 redirectTo: `${window.location.origin}/`
             }
         })

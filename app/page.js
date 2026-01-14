@@ -1,7 +1,8 @@
 "use client"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from '@/app/provider'
+import { supabase } from '@/services/supabaseClient'
 
 /**
  * Root Page Component
@@ -10,33 +11,56 @@ import { useUser } from '@/app/provider'
  * - Handles URL hash cleanup after OAuth redirect
  */
 export default function Home() {
-  const { user } = useUser()
+  const { user, isLoading } = useUser()
   const router = useRouter()
+  const [isProcessingAuth, setIsProcessingAuth] = useState(true)
 
   useEffect(() => {
-    // CHANGED: Remove hash from URL if present (OAuth redirect cleanup)
-    if (typeof window !== 'undefined' && window.location.hash) {
-      // Replace URL without hash to fix CSS loading issues
-      window.history.replaceState(null, '', window.location.pathname)
+    const handleAuthCallback = async () => {
+      // Check if this is an OAuth callback (has hash with access_token)
+      if (typeof window !== 'undefined' && window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+        
+        if (accessToken) {
+          console.log('🔐 Processing OAuth callback...')
+          
+          // Let Supabase process the OAuth callback
+          const { data, error } = await supabase.auth.getSession()
+          
+          if (error) {
+            console.error('Auth callback error:', error)
+          } else if (data.session) {
+            console.log('✅ Session established, redirecting to dashboard')
+            // Clean URL and redirect
+            window.history.replaceState(null, '', '/')
+            router.replace('/dashboard')
+            return
+          }
+          
+          // Clean up the hash
+          window.history.replaceState(null, '', window.location.pathname)
+        }
+      }
+      
+      setIsProcessingAuth(false)
     }
 
-    // CHANGED: Redirect based on authentication status
+    handleAuthCallback()
+  }, [router])
+
+  useEffect(() => {
+    // Don't redirect while still processing auth or loading
+    if (isProcessingAuth || isLoading) return
+
     if (user) {
-      // User is logged in, go to dashboard
       router.replace('/dashboard')
     } else {
-      // Small delay to allow auth state to initialize
-      const timer = setTimeout(() => {
-        if (!user) {
-          router.replace('/auth')
-        }
-      }, 1500) // Wait 1.5 seconds for auth to initialize
-      
-      return () => clearTimeout(timer)
+      router.replace('/auth')
     }
-  }, [user, router])
+  }, [user, isLoading, isProcessingAuth, router])
 
-  // CHANGED: Show loading state while redirecting
+  // Show loading state while redirecting
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="flex flex-col items-center gap-4">
