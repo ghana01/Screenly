@@ -2,10 +2,30 @@
 
 <div align="center">
 
-### 🚀 **[Live Demo: screenly-three.vercel.app](https://screenly-three.vercel.app/)**
+<h2>🚀 <a href="https://screenly-three.vercel.app/">Try Live Demo →</a></h2>
 
-[![Live Demo](https://img.shields.io/badge/🔴_LIVE_DEMO-Visit_Now-FF6B6B?style=for-the-badge)](https://screenly-three.vercel.app/)
+<a href="https://screenly-three.vercel.app/">
+  <img src="https://img.shields.io/badge/🔴_LIVE_DEMO-Click_to_Try_Now-FF6B6B?style=for-the-badge&labelColor=1a1a1a" alt="Live Demo" height="50"/>
+</a>
+
+<br/><br/>
+
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?style=for-the-badge&logo=vercel)](https://screenly-three.vercel.app/)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/ghana01/Screenly)
+
+</div>
+
+---
+
+<div align="center">
+
+### 📸 Preview
+
+| Landing Page | Dashboard | Interview |
+|:---:|:---:|:---:|
+| ![Landing](https://via.placeholder.com/300x200/667eea/ffffff?text=Landing+Page) | ![Dashboard](https://via.placeholder.com/300x200/764ba2/ffffff?text=Dashboard) | ![Interview](https://via.placeholder.com/300x200/f093fb/ffffff?text=Voice+Interview) |
+
+> **👆 These are placeholders** - Replace with actual screenshots of your app!
 
 </div>
 
