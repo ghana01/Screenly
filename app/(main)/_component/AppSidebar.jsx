@@ -29,7 +29,7 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="offcanvas" className="border-r">
+    <Sidebar collapsible="offcanvas" className="border-r bg-white">
       {/* Header with Logo */}
       <SidebarHeader className="p-4 border-b">
         <div className="flex items-center justify-center">

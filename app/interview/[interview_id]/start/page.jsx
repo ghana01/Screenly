@@ -6,6 +6,7 @@ import { Mic } from "lucide-react"
 import Image from "next/image"
 import Vapi from '@vapi-ai/web'
 import AlertConformation from "./_components/AlertConformation"
+import VoiceInterview from "./_components/VoiceInterview"
 import { toast } from "sonner"
 import axios from "axios"
 import { supabase } from "@/services/supabaseClient"
@@ -17,6 +18,8 @@ const StartInterview = () => {
     const [conversation, setConversation] = useState('')
     const [isCallActive, setIsCallActive] = useState(false)
     const [feedbackGenerated, setFeedbackGenerated] = useState(false)
+    const [useFreeMode, setUseFreeMode] = useState(false) // Fallback to free mode
+    const [vapiError, setVapiError] = useState(null)
     const { interview_id } = useParams()
     const Router = useRouter()
     
@@ -32,7 +35,8 @@ const StartInterview = () => {
 
     // Initialize VAPI and start call
     useEffect(() => {
-        if (!interviewInfo || isInitializingRef.current) {
+        // Skip VAPI if using free mode or already initializing
+        if (!interviewInfo || isInitializingRef.current || useFreeMode) {
             return;
         }
 
@@ -43,10 +47,34 @@ const StartInterview = () => {
             try {
                 isInitializingRef.current = true;
                 console.log('🎙️ Initializing VAPI...');
+                console.log('📋 Interview Info:', {
+                    userName: interviewInfo?.userName,
+                    jobPosition: interviewInfo?.interviewData?.jobPosition,
+                    questionCount: interviewInfo?.interviewData?.questionList?.length
+                });
                 
-                // Create VAPI instance
-                vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_API_KEY);
-                vapiRef.current = vapi;
+                // Create VAPI instance with error handling
+                const vapiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY;
+                
+                if (!vapiKey) {
+                    console.error('❌ NEXT_PUBLIC_VAPI_API_KEY is not set!');
+                    toast.error('VAPI API key is missing. Check .env.local file.');
+                    isInitializingRef.current = false;
+                    return;
+                }
+                
+                console.log('✅ VAPI Key found:', vapiKey.substring(0, 8) + '...');
+                
+                try {
+                    vapi = new Vapi(vapiKey);
+                    vapiRef.current = vapi;
+                    console.log('✅ VAPI instance created successfully');
+                } catch (vapiInitError) {
+                    console.error('❌ Failed to create VAPI instance:', vapiInitError);
+                    toast.error('Failed to initialize VAPI SDK');
+                    isInitializingRef.current = false;
+                    return;
+                }
 
                 // Set up event listeners
                 vapi.on('call-start', () => {
@@ -91,11 +119,60 @@ const StartInterview = () => {
 
                 vapi.on('error', (error) => {
                     if (!mounted) return;
-                    if (error.errorMsg !== 'Meeting has ended') {
-                        console.error('VAPI Error:', error);
-                        toast.error('Interview error occurred');
+                    
+                    // Enhanced error logging to debug the empty object issue
+                    console.error('❌ VAPI Error Details:', {
+                        error: error,
+                        errorMsg: error?.errorMsg,
+                        errorCode: error?.errorCode,
+                        message: error?.message,
+                        name: error?.name,
+                        type: typeof error,
+                        keys: error ? Object.keys(error) : [],
+                        stringified: JSON.stringify(error, null, 2),
+                        errorResponse: error?.error,
+                        statusCode: error?.statusCode
+                    });
+                    
+                    // Check for billing/credits error - switch to free mode
+                    const errorData = error?.error?.error;
+                    if (errorData?.message?.includes('Wallet Balance') || 
+                        errorData?.message?.includes('Credits') ||
+                        errorData?.message?.includes('Purchase More')) {
+                        console.log('💡 VAPI credits exhausted, switching to free mode...');
+                        toast.info('Switching to free interview mode...');
+                        setVapiError('VAPI credits exhausted');
+                        setUseFreeMode(true);
+                        isInitializingRef.current = false;
+                        return;
+                    }
+                    
+                    if (error?.errorMsg !== 'Meeting has ended') {
+                        const errorMessage = error?.errorMsg || error?.message || error?.error?.message || 'Unknown error - check console for details';
+                        toast.error(`Interview error: ${errorMessage}`);
+                        
+                        // Switch to free mode on any critical error
+                        if (!isCallActive) {
+                            setVapiError(errorMessage);
+                            setUseFreeMode(true);
+                        }
                     }
                 });
+
+                // Check if API key exists before starting
+                const apiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY;
+                console.log('🔑 VAPI API Key check:', {
+                    exists: !!apiKey,
+                    length: apiKey?.length,
+                    preview: apiKey ? apiKey.substring(0, 8) + '...' : 'MISSING'
+                });
+                
+                if (!apiKey) {
+                    console.error('❌ VAPI API Key is missing!');
+                    toast.error('VAPI API Key not configured');
+                    isInitializingRef.current = false;
+                    return;
+                }
 
                 // Prepare question list
                 let questionList = '';
@@ -145,11 +222,41 @@ Guidelines:
                 };
                 
                 console.log('🚀 Starting interview call...');
-                await vapi.start(assistantOptions);
+                console.log('📋 Assistant Options:', JSON.stringify(assistantOptions, null, 2));
+                
+                try {
+                    await vapi.start(assistantOptions);
+                    console.log('✅ VAPI call started successfully');
+                } catch (startError) {
+                    console.error('❌ VAPI start() failed:', {
+                        message: startError?.message,
+                        name: startError?.name,
+                        error: startError,
+                        response: startError?.response,
+                        data: startError?.response?.data
+                    });
+                    
+                    // Check if it's a billing error
+                    const errorMsg = startError?.message || '';
+                    if (errorMsg.includes('Wallet') || errorMsg.includes('Credits') || errorMsg.includes('Balance')) {
+                        console.log('💡 VAPI billing issue, switching to free mode...');
+                        toast.info('VAPI unavailable, using free interview mode');
+                        setVapiError('VAPI billing issue');
+                        setUseFreeMode(true);
+                    } else {
+                        toast.error(`VAPI failed, switching to free mode...`);
+                        setVapiError(startError?.message || 'Unknown error');
+                        setUseFreeMode(true);
+                    }
+                    isInitializingRef.current = false;
+                    return;
+                }
                 
             } catch (error) {
                 console.error('❌ Failed to initialize VAPI:', error);
-                toast.error('Failed to start interview. Please refresh and try again.');
+                toast.info('Switching to free interview mode...');
+                setVapiError(error?.message || 'VAPI initialization failed');
+                setUseFreeMode(true);
                 isInitializingRef.current = false;
             }
         };
@@ -171,7 +278,26 @@ Guidelines:
                 vapiRef.current = null;
             }
         };
-    }, [interviewInfo]); // Only depend on interviewInfo
+    }, [interviewInfo, useFreeMode]); // Add useFreeMode dependency
+
+    // Free mode handlers
+    const handleFreeConversationUpdate = (newConversation) => {
+        setConversation(newConversation);
+        conversationRef.current = newConversation;
+    };
+
+    const handleFreeCallStatusChange = (status) => {
+        setIsCallActive(status);
+    };
+
+    const handleFreeInterviewEnd = async (finalConversation) => {
+        if (feedbackGeneratedRef.current || !finalConversation?.trim()) {
+            Router.replace(`/interview/${interview_id}/completed`);
+            return;
+        }
+        conversationRef.current = finalConversation;
+        GenerateFeedBack();
+    };
 
     const stopInterview = () => {
         const vapi = vapiRef.current;
@@ -293,6 +419,75 @@ Guidelines:
             </div>
         );
     }
+
+    // Free Mode UI (Web Speech API - FREE alternative)
+    if (useFreeMode) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 lg:p-20">
+                <div className="max-w-6xl mx-auto">
+                    {/* Header */}
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-800">
+                                    AI Interview Session
+                                </h1>
+                                <p className="text-gray-600 mt-1">
+                                    Interviewing: {interviewInfo?.userName}
+                                </p>
+                                <p className="text-sm text-blue-600 mt-1">
+                                    🆓 Free Mode (Browser Speech API)
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-4 text-gray-600">
+                                <div className="flex items-center gap-2">
+                                    <Timer className="h-5 w-5" />
+                                    <span>{interviewInfo?.interviewData?.interviewDuration} mins</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Info className="h-5 w-5" />
+                                    <span>{interviewInfo?.interviewData?.interviewTypes?.join(', ')}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {vapiError && (
+                            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <p className="text-sm text-yellow-800">
+                                    ⚠️ VAPI unavailable: {vapiError}. Using free browser-based interview.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Free Voice Interview Component */}
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                        <VoiceInterview 
+                            interviewInfo={interviewInfo}
+                            interviewId={interview_id}
+                            onConversationUpdate={handleFreeConversationUpdate}
+                            onInterviewEnd={handleFreeInterviewEnd}
+                            onCallStatusChange={handleFreeCallStatusChange}
+                        />
+                    </div>
+
+                    {/* Instructions */}
+                    <div className="bg-blue-50 rounded-xl p-6">
+                        <h3 className="font-semibold text-blue-800 mb-2">📋 Instructions</h3>
+                        <ul className="text-sm text-blue-700 space-y-1">
+                            <li>• Click &quot;Start Interview&quot; to begin</li>
+                            <li>• Allow microphone access when prompted</li>
+                            <li>• Speak clearly and wait for the AI to finish before responding</li>
+                            <li>• Your progress is <strong>automatically saved</strong> - you can refresh and resume</li>
+                            <li>• Click &quot;Submit Interview&quot; when you&apos;re done, or wait for time to end</li>
+                            <li>• Works best in Chrome or Edge browsers</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // VAPI Mode UI (Premium)
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 lg:p-20">
