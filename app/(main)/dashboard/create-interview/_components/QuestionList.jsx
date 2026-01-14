@@ -73,6 +73,11 @@ const QuestionList = ({ formData, onCreateLink}) => {
             const interview_id = uuid();
             setSaveLoading(true)
             
+            console.log('🔍 Debug - Starting onFinish')
+            console.log('🔍 Debug - questionList:', questionList?.length, 'questions')
+            console.log('🔍 Debug - user:', user)
+            console.log('🔍 Debug - user.email:', user?.email)
+            
             if(!questionList || questionList.length === 0){
                 setSaveLoading(false)
                 toast.error('No questions available to save')
@@ -82,6 +87,7 @@ const QuestionList = ({ formData, onCreateLink}) => {
             if(!user?.email) {
                 setSaveLoading(false)
                 toast.error('Please sign in to save interview')
+                console.log('🔍 Debug - No user email found, returning')
                 return;
             }
             
@@ -95,10 +101,14 @@ const QuestionList = ({ formData, onCreateLink}) => {
                 interview_id: interview_id
             }
             
+            console.log('🔍 Debug - Inserting data:', dataToInsert)
+            
             const { data, error } = await supabase
                 .from('interview')
                 .insert([dataToInsert])
                 .select()
+            
+            console.log('🔍 Debug - Supabase response:', { data, error })
             
             if (error) {
                 console.error('Database error:', error);
