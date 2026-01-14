@@ -1,11 +1,35 @@
-# 🎤 AI Interview Voice Agent
+# 🎤 Screenly - AI Interview Voice Agent
 
-> An intelligent, real-time voice-powered interview platform that conducts automated technical and behavioral interviews using VAPI AI, generates comprehensive feedback with OpenAI GPT-4, and manages the entire interview lifecycle from creation to candidate evaluation.
+<div align="center">
 
-![Next.js](https://img.shields.io/badge/Next.js-15.5.4-black?style=for-the-badge&logo=next.js)
+### 🚀 **[Live Demo: screenly-three.vercel.app](https://screenly-three.vercel.app/)**
+
+[![Live Demo](https://img.shields.io/badge/🔴_LIVE_DEMO-Visit_Now-FF6B6B?style=for-the-badge)](https://screenly-three.vercel.app/)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?style=for-the-badge&logo=vercel)](https://screenly-three.vercel.app/)
+
+</div>
+
+---
+
+> **Screenly** is an intelligent, real-time voice-powered interview platform designed for **recruiters** to streamline their hiring process. Recruiters create AI-powered interviews, share them with candidates via a unique link, and receive comprehensive AI-generated feedback after each interview - all without manual effort.
+
+---
+
+## 🎯 How It Works
+
+| Step | For Recruiters | For Candidates |
+|------|----------------|----------------|
+| **1** | 🔐 Sign in with Google | 📧 Receive interview link from recruiter |
+| **2** | 📝 Create interview (job title, description, question types) | 🎤 Complete voice interview with AI agent |
+| **3** | 🔗 Share unique interview link with candidates | ✅ Get instant performance feedback |
+| **4** | 📊 View detailed AI feedback & hiring recommendations | 📈 See strengths and improvement areas |
+
+---
+
+![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black?style=for-the-badge&logo=next.js)
 ![React](https://img.shields.io/badge/React-19.1.0-61DAFB?style=for-the-badge&logo=react)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)
-![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-412991?style=for-the-badge&logo=openai)
+![OpenRouter](https://img.shields.io/badge/OpenRouter-Gemini_AI-412991?style=for-the-badge&logo=google)
 ![VAPI](https://img.shields.io/badge/VAPI-Voice_AI-FF6B6B?style=for-the-badge)
 
 ---
@@ -31,7 +55,20 @@
 
 ## 🚀 Overview
 
-The **AI Interview Voice Agent** is a cutting-edge recruitment platform that revolutionizes the hiring process by automating interviews with real-time voice interactions. The system leverages advanced AI technologies to conduct natural, human-like interviews, evaluate candidates, and generate detailed performance reports.
+**Screenly** is a cutting-edge AI-powered recruitment platform that revolutionizes the hiring process by automating interviews with real-time voice interactions. 
+
+### 👔 For Recruiters
+- **Create interviews in minutes** - Define job role, description, and question types
+- **AI generates relevant questions** - No manual question creation needed
+- **Share unique links** - Send interview links to candidates via email
+- **Receive detailed feedback** - AI analyzes each interview and provides hiring recommendations
+- **Track all candidates** - View responses, ratings, and make informed decisions
+
+### 🎓 For Candidates
+- **No app downloads** - Interview directly in the browser
+- **Natural conversation** - Talk with an AI interviewer just like a real interview
+- **Instant feedback** - See your performance immediately after completing
+- **Fair evaluation** - AI provides unbiased, consistent assessments
 
 ### What Makes This Special?
 
@@ -39,7 +76,7 @@ The **AI Interview Voice Agent** is a cutting-edge recruitment platform that rev
 - 🤖 **AI-Generated Questions**: Dynamic question generation based on job role and description
 - 📊 **Automated Feedback**: Comprehensive candidate evaluation with ratings and recommendations
 - 🎯 **Multi-Type Interviews**: Supports Technical, Behavioral, Experience, Problem Solving, and Leadership assessments
-- 🔐 **Secure Authentication**: Supabase Auth integration with Row Level Security
+- 🔐 **Secure Authentication**: Google OAuth with Supabase Auth integration
 - 📱 **Responsive UI**: Modern, gradient-rich interface with shadcn/ui components
 
 ---
