@@ -21,8 +21,8 @@ function Login() {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                // Redirect to home page after auth, it will handle the callback
-                redirectTo: `${window.location.origin}/`
+                // Redirect to callback page after auth
+                redirectTo: `${window.location.origin}/auth/callback`
             }
         })
         if (error) console.log('Error: ', error.message)
