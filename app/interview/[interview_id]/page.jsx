@@ -1,7 +1,7 @@
 "use client"
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Clock, Loader2Icon, Video, Info } from 'lucide-react'
+import { Clock, Loader2Icon, Video, Info, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
 import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -16,6 +16,8 @@ const Interview = () => {
     const [userName, setUserName] = useState('');
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(true);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
+    const [checkingSubmission, setCheckingSubmission] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -23,6 +25,37 @@ const Interview = () => {
             GetInterviewDetail();
         }
     }, [interview_id])
+
+    // Check if this email has already submitted
+    useEffect(() => {
+        const checkPreviousSubmission = async () => {
+            if (!email?.trim() || !interview_id) return;
+            
+            setCheckingSubmission(true);
+            try {
+                const { data, error } = await supabase
+                    .from('interview-feedback')
+                    .select('id')
+                    .eq('interview_id', interview_id)
+                    .eq('userEmail', email.trim())
+                    .limit(1);
+
+                if (data && data.length > 0) {
+                    setHasSubmitted(true);
+                } else {
+                    setHasSubmitted(false);
+                }
+            } catch (e) {
+                console.error('Error checking submission:', e);
+            } finally {
+                setCheckingSubmission(false);
+            }
+        };
+
+        // Debounce the check
+        const timer = setTimeout(checkPreviousSubmission, 500);
+        return () => clearTimeout(timer);
+    }, [email, interview_id])
 
     const GetInterviewDetail = async () => {
         try {
@@ -138,14 +171,42 @@ const Interview = () => {
                 </div>
             </div>
 
+            {/* Already Submitted Message */}
+            {hasSubmitted && (
+                <div className='p-4 bg-green-100 border border-green-300 flex gap-4 rounded-2xl mt-5'>
+                    <CheckCircle className='text-green-600 h-6 w-6 flex-shrink-0 mt-1' />
+                    <div>
+                        <h2 className='font-bold text-green-800'>Interview Already Completed</h2>
+                        <p className='text-green-700 text-sm mt-1'>
+                            You have already submitted your interview for this position. 
+                            Thank you for your participation!
+                        </p>
+                    </div>
+                </div>
+            )}
+
             <Button 
                 className="mt-5 w-full font-bold"
-                disabled={loading || !userName?.trim() || !email?.trim()}
+                disabled={loading || !userName?.trim() || !email?.trim() || hasSubmitted || checkingSubmission}
                 onClick={onJoinInterview}
             >
-                <Video className="mr-2" />
-                {loading && <Loader2Icon className="animate-spin mr-2" />}
-                Join Interview
+                {checkingSubmission ? (
+                    <>
+                        <Loader2Icon className="animate-spin mr-2" />
+                        Checking...
+                    </>
+                ) : hasSubmitted ? (
+                    <>
+                        <CheckCircle className="mr-2" />
+                        Already Submitted
+                    </>
+                ) : (
+                    <>
+                        <Video className="mr-2" />
+                        {loading && <Loader2Icon className="animate-spin mr-2" />}
+                        Join Interview
+                    </>
+                )}
             </Button>
         </div>
     )
